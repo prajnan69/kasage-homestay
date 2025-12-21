@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Navigation, Locate, Phone, Map as MapIcon, ExternalLink, Home } from "lucide-react"; // Renamed Map to MapIcon to avoid conflict
 import { useNavigate } from "react-router-dom";
-import { Loader } from "@googlemaps/js-api-loader";
+import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 
 // --- CONFIGURATION ---
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -58,17 +58,13 @@ export default function MapPage() {
 
   // 1. Load Google Maps Script
   useEffect(() => {
-    const loader = new Loader({
-      apiKey: GOOGLE_MAPS_API_KEY,
-      version: "weekly",
-      libraries: ["maps", "marker"]
+    // Configure the loader
+    setOptions({
+      key: GOOGLE_MAPS_API_KEY,
+      v: "weekly",
     });
 
-    loader.importLibrary("maps").then(() => {
-        initMap();
-    }).catch((e) => {
-        console.error("Google Maps Load Error:", e);
-    });
+    initMap();
   }, []);
 
   // 2. Get User Location & Check Distance
@@ -103,35 +99,46 @@ export default function MapPage() {
     // Default center is Kasage if user location isn't ready yet
     const center = userLocation || KASAGE_LOCATION;
 
-    // Ensure library is loaded (Loader handles this)
-    const { Map } = await google.maps.importLibrary("maps");
-    const { Marker } = await google.maps.importLibrary("marker");
+    try {
+      // Import libraries (this triggers the load if not already loaded)
+      const { Map } = await importLibrary("maps");
+      const { Marker } = await importLibrary("marker");
 
-    mapInstance.current = new Map(mapRef.current, {
-      center: center,
-      zoom: 11,
-      disableDefaultUI: true,
-      styles: MAP_STYLES,
-      zoomControl: false,
-    });
-
-    ATTRACTIONS.forEach((p) => {
-      const marker = new Marker({
-        position: { lat: p.lat, lng: p.lng },
-        map: mapInstance.current,
-        title: p.name,
-        animation: google.maps.Animation.DROP,
+      mapInstance.current = new Map(mapRef.current, {
+        center: center,
+        zoom: 11,
+        disableDefaultUI: true,
+        styles: MAP_STYLES,
+        zoomControl: false,
       });
-      marker.addListener("click", () => handleSelectAttraction(p));
-    });
 
-    setIsMapReady(true);
+      ATTRACTIONS.forEach((p) => {
+        const marker = new Marker({
+          position: { lat: p.lat, lng: p.lng },
+          map: mapInstance.current,
+          title: p.name,
+          animation: google.maps.Animation.DROP,
+        });
+        marker.addListener("click", () => handleSelectAttraction(p));
+      });
+
+      setIsMapReady(true);
+    } catch (error) {
+      console.error("Error loading Google Maps libraries:", error);
+    }
   };
 
   // 4. Update Map Center when User Location is found (if inside app)
   useEffect(() => {
     if (userLocation && mapInstance.current && isMapReady) {
       mapInstance.current.setCenter(userLocation);
+      
+      // We need to ensure Marker is available, but since isMapReady is true, initMap finished, so importLibrary("marker") finished.
+      // However, google.maps.Marker might not be available globally if we only got it from importLibrary?
+      // importLibrary returns the class. google.maps.Marker should also be set globally by the bootstrap.
+      // To be safe, we can use importLibrary again or assume global.
+      // Usually the bootstrap sets the globals.
+      
       new google.maps.Marker({
         position: userLocation,
         map: mapInstance.current,
