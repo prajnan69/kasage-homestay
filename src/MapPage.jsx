@@ -50,6 +50,7 @@ export default function MapPage() {
   const [userLocation, setUserLocation] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [isMapReady, setIsMapReady] = useState(false);
+  const [mapError, setMapError] = useState(null);
   
   // New States for Location Check
   const [isLoadingLocation, setIsLoadingLocation] = useState(true);
@@ -125,6 +126,7 @@ export default function MapPage() {
       setIsMapReady(true);
     } catch (error) {
       console.error("Error loading Google Maps libraries:", error);
+      setMapError(error.message || "Failed to load Google Maps");
     }
   };
 
@@ -198,6 +200,17 @@ export default function MapPage() {
   return (
     <div className="relative h-screen w-full overflow-hidden bg-gray-100 text-slate-800 font-sans">
       <div ref={mapRef} className="absolute inset-0 h-full w-full z-0" />
+      
+      {/* Error Overlay */}
+      {mapError && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/80 p-4">
+          <div className="bg-white p-6 rounded-xl shadow-xl border border-red-200 max-w-sm w-full text-center">
+            <h3 className="text-red-600 font-bold text-lg mb-2">Map Error</h3>
+            <p className="text-gray-700 mb-4">{mapError}</p>
+            <p className="text-xs text-gray-500">Check API Key restrictions in Google Cloud Console.</p>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <motion.div 
