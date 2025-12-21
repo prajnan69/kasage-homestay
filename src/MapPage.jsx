@@ -5,7 +5,6 @@ import { useNavigate } from "react-router-dom";
 
 // --- CONFIGURATION ---
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-console.log(GOOGLE_MAPS_API_KEY);
 const BOOKING_PHONE_NUMBER = "8660627034"; // Replace with real booking number
 const DISTANCE_THRESHOLD_KM = 20; // Radius to consider "In Location"
 
@@ -70,7 +69,7 @@ export default function MapPage() {
     }
 
     const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&loading=async`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}`;
     script.async = true;
     script.defer = true;
     script.onload = initMap;
