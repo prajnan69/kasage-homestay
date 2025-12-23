@@ -94,22 +94,21 @@ const MAP_STYLES = [];
 let mapsInitialized = false;
 
 /* ---------------- HELPER ICONS ---------------- */
-const createPinIcon = (color, scale = 1) => {
+const createMarkerIcon = (color, scale = 1) => {
   return {
-    path: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z",
+    path: google.maps.SymbolPath.CIRCLE,
     fillColor: color,
     fillOpacity: 1,
     strokeColor: "#ffffff",
     strokeWeight: 2,
-    scale: 2 * scale,
-    anchor: new google.maps.Point(12, 22),
-    labelOrigin: new google.maps.Point(12, -10),
+    scale: 6 * scale,
   };
 };
 
 export default function MapPage() {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
+  const userMarker = useRef(null);
   
   // Directions Services
   const directionsService = useRef(null);
@@ -195,7 +194,7 @@ export default function MapPage() {
             fontSize: "11px",
             fontWeight: "600",
           },
-          icon: createPinIcon(p.color),
+          icon: createMarkerIcon(p.color),
         });
 
         marker.addListener("click", () => handleSelectLocation(p));
@@ -242,11 +241,11 @@ export default function MapPage() {
     // 2. Animate Marker
     attractionMarkers.current.forEach(({ id, marker, color }) => {
       if (id === place.id) {
-        marker.setIcon(createPinIcon(color, 1.4));
+        marker.setIcon(createMarkerIcon(color, 1.5));
         marker.setAnimation(google.maps.Animation.BOUNCE);
         setTimeout(() => marker.setAnimation(null), 700);
       } else {
-        marker.setIcon(createPinIcon(color, 1));
+        marker.setIcon(createMarkerIcon(color, 1));
       }
     });
 
@@ -282,10 +281,26 @@ export default function MapPage() {
         };
         mapInstance.current.panTo(pos);
         mapInstance.current.setZoom(14);
+
+        if (userMarker.current) userMarker.current.setMap(null);
+        
+        userMarker.current = new google.maps.Marker({
+          position: pos,
+          map: mapInstance.current,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 7,
+            fillColor: "#4285F4",
+            fillOpacity: 1,
+            strokeColor: "#ffffff",
+            strokeWeight: 2,
+          },
+          title: "You are here",
+        });
       },
       (error) => {
         console.error("Error getting location:", error);
-        // Fail silently or show a toast - alert might be too intrusive but acceptable here
+        alert("Unable to retrieve your location. Please check browser permissions.");
       }
     );
   };
@@ -333,43 +348,44 @@ export default function MapPage() {
       <div className="absolute top-24 right-4 z-20 flex flex-col gap-3">
         <button
           onClick={handleRecenter}
-          className="bg-white p-3 rounded-full shadow-xl text-gray-700 active:scale-95 transition-transform"
+          className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl shadow-lg border border-white/50 text-slate-700 hover:text-emerald-600 active:scale-95 transition-all duration-200"
           aria-label="Go to Home"
         >
-          <Home size={20} />
+          <Home size={22} />
         </button>
         <button
           onClick={handleLocateUser}
-          className="bg-white p-3 rounded-full shadow-xl text-gray-700 active:scale-95 transition-transform"
+          className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl shadow-lg border border-white/50 text-slate-700 hover:text-blue-600 active:scale-95 transition-all duration-200"
           aria-label="Locate Me"
         >
-          <Locate size={20} />
+          <Locate size={22} />
         </button>
       </div>
 
       {/* 🃏 Visual Cards */}
       <div 
-        className="absolute bottom-0 inset-x-0 z-30 pb-6 pt-12 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent"
+        className="absolute bottom-0 inset-x-0 z-30 pb-8 pt-20 bg-gradient-to-t from-black/50 via-black/10 to-transparent pointer-events-none"
       >
         <div 
           ref={cardsContainerRef}
-          className="flex gap-4 overflow-x-auto px-6 no-scrollbar snap-x snap-mandatory"
+          className="flex gap-4 overflow-x-auto px-6 no-scrollbar snap-x snap-mandatory pointer-events-auto items-end"
         >
           {/* Home Card */}
-          <div className="snap-center min-w-[280px] max-w-[280px] bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100 flex flex-col">
-            <div className="h-32 bg-emerald-600 flex items-center justify-center">
-              <span className="text-white font-bold text-2xl opacity-20">HOME</span>
+          <div className="snap-center min-w-[280px] max-w-[280px] bg-white/95 backdrop-blur-md rounded-3xl shadow-xl border border-white/60 flex flex-col overflow-hidden h-[300px]">
+            <div className="h-36 bg-emerald-600 flex items-center justify-center relative overflow-hidden">
+               <div className="absolute inset-0 bg-[url('/pattern.png')] opacity-10"></div>
+              <span className="text-white font-bold text-2xl tracking-widest opacity-90">HOME</span>
             </div>
-            <div className="p-4 flex-1 flex flex-col justify-between">
+            <div className="p-5 flex-1 flex flex-col justify-between">
               <div>
-                <h3 className="font-bold text-lg text-gray-800">Relax at Kasage</h3>
-                <p className="text-gray-500 text-sm mt-1">Tap a location to see the route.</p>
+                <h3 className="font-bold text-xl text-gray-800">Relax at Kasage</h3>
+                <p className="text-slate-500 text-sm mt-2 leading-relaxed">Your guide to nearby wonders. Tap a card to explore.</p>
               </div>
               <button 
                 onClick={() => navigate('/booking')} 
-                className="mt-3 w-full py-2 rounded-lg bg-emerald-50 text-emerald-700 font-semibold text-sm"
+                className="w-full py-3 rounded-xl bg-emerald-50 text-emerald-700 font-bold text-sm hover:bg-emerald-100 transition-colors"
               >
-                View Your Booking
+                View Booking
               </button>
             </div>
           </div>
@@ -382,45 +398,49 @@ export default function MapPage() {
               onClick={() => handleSelectLocation(item)}
               layout
               className={`
-                snap-center min-w-[300px] max-w-[300px] bg-white rounded-2xl shadow-2xl overflow-hidden cursor-pointer transition-all duration-300 border-2
-                ${selectedId === item.id ? "border-emerald-500 scale-105" : "border-transparent opacity-90"}
+                snap-center min-w-[280px] max-w-[280px] bg-white/95 backdrop-blur-md rounded-3xl shadow-xl cursor-pointer transition-all duration-300 border border-white/60 overflow-hidden h-[300px] flex flex-col
+                ${selectedId === item.id ? "ring-2 ring-emerald-500 scale-100" : "scale-95 opacity-90"}
               `}
             >
-              <div className="h-32 w-full relative">
+              <div className="h-40 w-full relative shrink-0">
                 <img 
                   src={item.image} 
                   alt={item.name} 
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute top-2 right-2 bg-black/60 backdrop-blur px-2 py-1 rounded text-white text-xs font-medium flex items-center gap-1">
-                  <Clock size={10} /> {item.time}
+                <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full text-white text-xs font-medium flex items-center gap-1.5 shadow-sm border border-white/20">
+                  <Clock size={12} /> {item.time}
                 </div>
               </div>
 
-              <div className="p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-bold text-gray-900 text-lg leading-tight">{item.name}</h3>
-                  <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded text-white`} style={{ backgroundColor: item.color }}>
-                    {item.type}
-                  </span>
+              <div className="p-4 flex flex-col flex-1">
+                <div className="flex justify-between items-start mb-1">
+                  <h3 className="font-bold text-slate-800 text-lg leading-tight">{item.name}</h3>
                 </div>
                 
-                <p className="text-gray-500 text-xs mb-4 flex items-center gap-1">
-                  <Car size={12}/> {item.distance} drive
-                </p>
+                <div className="flex items-center gap-2 mb-3">
+                   <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full text-white shadow-sm`} style={{ backgroundColor: item.color }}>
+                    {item.type}
+                  </span>
+                  <span className="text-slate-500 text-xs flex items-center gap-1 font-medium">
+                    <Car size={12}/> {item.distance}
+                  </span>
+                </div>
 
-                {selectedId === item.id ? (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); openNavigation(item.lat, item.lng); }}
-                    className="w-full bg-emerald-600 text-white py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 shadow-lg active:bg-emerald-700"
-                  >
-                    <Navigation size={16} /> Start GPS
-                  </button>
-                ) : (
-                  <div className="text-center text-emerald-600 text-xs font-medium py-2">
-                    Tap to view road route
-                  </div>
-                )}
+                <div className="mt-auto">
+                  {selectedId === item.id ? (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); openNavigation(item.lat, item.lng); }}
+                      className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg hover:bg-emerald-700 transition-colors"
+                    >
+                      <Navigation size={16} /> Start GPS
+                    </button>
+                  ) : (
+                    <div className="text-center text-emerald-600/80 text-xs font-semibold py-2">
+                      Tap card to see route
+                    </div>
+                  )}
+                </div>
               </div>
             </motion.div>
           ))}
