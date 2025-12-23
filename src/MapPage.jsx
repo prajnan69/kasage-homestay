@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Navigation, Locate, MapPin, Clock, ArrowRight, Car, Home } from "lucide-react";
+import { Navigation, Locate, MapPin, Clock, ArrowRight, Car, Home, ChevronDown, ChevronUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { importLibrary } from "@googlemaps/js-api-loader";
 
@@ -16,20 +16,20 @@ const ATTRACTIONS = [
     lng: 74.624682, 
     distance: "5 km", 
     time: "5 min",
-    type: "Waterfalls", 
+    type: "WaterFalls", 
     image: "/Benne-hole.png",
     color: "#0ea5e9" 
   },
   { 
-    id: 2, 
-    name: "Gokarna-OM beach", 
-    lat: 14.519188,
-    lng: 74.323062, 
-    distance: "50 km", 
-    time: "70 mins",
-    type: "Beach", 
-    image: "/Om-beach.png",
-    color: "#f59e0b" 
+    id: 8, 
+    name: "Devimane Ghat View point", 
+    lat: 14.520563,
+    lng: 74.566563, 
+    distance: "7 km", 
+    time: "8 min",
+    type: "View Point", 
+    image: "/Devimane.png",
+    color: "#64748b" 
   },
   { 
     id: 3, 
@@ -41,6 +41,17 @@ const ATTRACTIONS = [
     type: "Temple", 
     image: "/Manjunatha-temple.png",
     color: "#ea580c" 
+  },
+  { 
+    id: 7, 
+    name: "Nishane Gudda", 
+    lat: 14.478938,
+    lng: 74.663187, 
+    distance: "52 km", 
+    time: "21 min",
+    type: "Trek", 
+    image: "/Nishane-gudda.png",
+    color: "#64748b" 
   },
   { 
     id: 4, 
@@ -65,6 +76,39 @@ const ATTRACTIONS = [
     color: "#64748b" 
   },
   { 
+    id: 10, 
+    name: "Kadle betta view point", 
+    lat: 14.438063,
+    lng: 74.382937, 
+    distance: "35 km", 
+    time: "65 min",
+    type: "Beach and viewpoint", 
+    image: "/Kadle-betta.png",
+    color: "#64748b" 
+  },
+  { 
+    id: 2, 
+    name: "Gokarna-OM beach", 
+    lat: 14.519188,
+    lng: 74.323062, 
+    distance: "50 km", 
+    time: "70 mins",
+    type: "Beach", 
+    image: "/Om-beach.png",
+    color: "#f59e0b" 
+  },
+  { 
+    id: 9, 
+    name: "Vajragundi Falls", 
+    lat: 14.544688,
+    lng: 74.487437, 
+    distance: "40 km", 
+    time: "71 min",
+    type: "WaterFalls", 
+    image: "/Vajragundi.png",
+    color: "#64748b" 
+  },
+  { 
     id: 6, 
     name: "Honnavara Boating", 
     lat: 14.282063,
@@ -75,21 +119,29 @@ const ATTRACTIONS = [
     image: "/Honnavara-Boating.png",
     color: "#64748b" 
   },
-  { 
-    id: 7, 
-    name: "Nishane Gudda", 
-    lat: 14.478938,
-    lng: 74.663187, 
-    distance: "52 km", 
-    time: "21 min",
-    type: "Trek", 
-    image: "/Nishane-gudda.png",
-    color: "#64748b" 
-  },
 ];
 
 /* Default Map Style */
-const MAP_STYLES = [];
+const MAP_STYLES = [
+  {
+    featureType: "all",
+    elementType: "labels",
+    stylers: [{ visibility: "off" }],
+  },
+  {
+    featureType: "road",
+    elementType: "labels",
+    stylers: [{ visibility: "off" }],
+  },
+  {
+    featureType: "poi",
+    stylers: [{ visibility: "off" }],
+  },
+  {
+    featureType: "transit",
+    stylers: [{ visibility: "off" }],
+  },
+];
 
 let mapsInitialized = false;
 
@@ -102,6 +154,7 @@ const createMarkerIcon = (color, scale = 1) => {
     strokeColor: "#ffffff",
     strokeWeight: 2,
     scale: 6 * scale,
+    labelOrigin: new google.maps.Point(0, -2),
   };
 };
 
@@ -118,8 +171,28 @@ export default function MapPage() {
 
   const [selectedId, setSelectedId] = useState(null);
   const [mapError, setMapError] = useState(null);
+  const [selectedFilter, setSelectedFilter] = useState("All");
+  const [showCards, setShowCards] = useState(true);
   const navigate = useNavigate();
   const cardsContainerRef = useRef(null);
+
+  const filteredAttractions = selectedFilter === "All" 
+    ? ATTRACTIONS 
+    : ATTRACTIONS.filter(a => a.type === selectedFilter);
+
+  useEffect(() => {
+    attractionMarkers.current.forEach(({ marker, type }) => {
+      if (selectedFilter === "All" || type === selectedFilter) {
+        marker.setMap(mapInstance.current);
+      } else {
+        marker.setMap(null);
+      }
+    });
+  }, [selectedFilter]);
+
+  const handleBookOnWhatsApp = () => {
+    window.open("https://wa.me/918660627034", "_blank");
+  };
 
   /* -------- INITIALIZE MAP -------- */
   useEffect(() => {
@@ -144,15 +217,17 @@ export default function MapPage() {
         styles: MAP_STYLES,
         disableDefaultUI: true,
         clickableIcons: false,
+        gestureHandling: "greedy",
       });
 
       // Init Directions Service
       directionsService.current = new DirectionsService();
       directionsRenderer.current = new DirectionsRenderer({
         map: mapInstance.current,
-        suppressMarkers: true, // IMPORTANT: We use our own custom icons, so hide Google's A/B markers
+        suppressMarkers: true,
+        preserveViewport: true, // IMPORTANT: We handle viewport fitting manually to account for bottom panel
         polylineOptions: {
-          strokeColor: "#059669", // Emerald Green Route
+          strokeColor: "#059669", 
           strokeWeight: 5,
           strokeOpacity: 0.8,
         },
@@ -198,7 +273,7 @@ export default function MapPage() {
         });
 
         marker.addListener("click", () => handleSelectLocation(p));
-        attractionMarkers.current.push({ id: p.id, marker, color: p.color });
+        attractionMarkers.current.push({ id: p.id, marker, color: p.color, type: p.type });
       });
 
     };
@@ -213,6 +288,7 @@ export default function MapPage() {
   /* -------- HANDLE SELECTION (API CALL) -------- */
   
   const handleSelectLocation = (place) => {
+    setShowCards(true);
     setSelectedId(place.id);
 
     // 1. Calculate Real Route on Roads
@@ -225,12 +301,16 @@ export default function MapPage() {
         },
         (result, status) => {
           if (status === google.maps.DirectionsStatus.OK) {
-            // Render the route
             directionsRenderer.current.setDirections(result);
             
-            // Optional: You could update time/distance dynamically here
-            // const leg = result.routes[0].legs[0];
-            // console.log(leg.distance.text, leg.duration.text); 
+            // Adjust map view to account for the bottom panel
+            const bounds = result.routes[0].bounds;
+            mapInstance.current.fitBounds(bounds, {
+              bottom: 400, // Padding for bottom panel
+              top: 100,    // Padding for top bar
+              left: 20,
+              right: 20
+            });
           } else {
             console.error(`Directions request failed: ${status}`);
           }
@@ -265,6 +345,10 @@ export default function MapPage() {
     if (directionsRenderer.current) {
       directionsRenderer.current.setDirections({ routes: [] });
     }
+    // Scroll cards back to Home Card
+    if (cardsContainerRef.current) {
+      cardsContainerRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+    }
   };
 
   const handleLocateUser = () => {
@@ -275,10 +359,16 @@ export default function MapPage() {
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const pos = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        };
+        const { latitude, longitude, accuracy } = position.coords;
+        
+        // If accuracy is poor (greater than 500 meters), don't show user location
+        if (accuracy > 500) {
+          alert(`Unable to get a precise location (Accuracy: ${Math.round(accuracy)}m). Please try again in an area with better signal.`);
+          return;
+        }
+
+        const pos = { lat: latitude, lng: longitude };
+        
         mapInstance.current.panTo(pos);
         mapInstance.current.setZoom(14);
 
@@ -301,7 +391,8 @@ export default function MapPage() {
       (error) => {
         console.error("Error getting location:", error);
         alert("Unable to retrieve your location. Please check browser permissions.");
-      }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
@@ -331,12 +422,11 @@ export default function MapPage() {
       {/* 🔝 Floating Top Bar */}
       <div className="absolute top-0 inset-x-0 z-20 p-4 bg-gradient-to-b from-black/60 to-transparent pt-6 pb-12 pointer-events-none">
          <div className="flex justify-between items-start pointer-events-auto">
-            <button 
-              onClick={() => navigate('/')} 
-              className="bg-white/90 backdrop-blur text-emerald-800 px-4 py-2 rounded-full font-bold shadow-md text-sm flex items-center gap-2"
+            <div 
+              className="bg-white/90 backdrop-blur text-emerald-800 px-4 py-2 rounded-full font-bold shadow-md text-xs flex items-center gap-2"
             >
-              <ArrowRight className="rotate-180" size={16}/> Back
-            </button>
+              kasage-homestay.vercel.app
+            </div>
             <div className="flex flex-col items-end">
               <span className="text-white font-bold text-lg drop-shadow-md">Explore Nearby</span>
               <span className="text-white/80 text-xs drop-shadow-md">Guest Guide</span>
@@ -362,47 +452,89 @@ export default function MapPage() {
         </button>
       </div>
 
-      {/* 🃏 Visual Cards */}
+      {/* ⬇️ Bottom Panel Wrapper */}
       <div 
-        className="absolute bottom-0 inset-x-0 z-30 pb-8 pt-20 bg-gradient-to-t from-black/50 via-black/10 to-transparent pointer-events-none"
+        className={`absolute bottom-0 inset-x-0 z-30 transition-transform duration-500 ease-in-out flex flex-col justify-end ${showCards ? 'translate-y-0' : 'translate-y-[calc(100%-60px)]'}`}
       >
+        {/* Toggle Handle */}
+        <div className="flex justify-center pb-2 pointer-events-none">
+           <button 
+            onClick={() => setShowCards(!showCards)}
+            className="pointer-events-auto bg-white/90 backdrop-blur text-slate-700 hover:text-emerald-600 p-2.5 rounded-full shadow-lg border border-white/50 transition-colors"
+          >
+            {showCards ? <ChevronDown size={24} /> : <ChevronUp size={24} />}
+          </button>
+        </div>
+
+        {/* 🏷️ Filter Chips */}
+        <div className="px-6 pb-4 overflow-x-auto no-scrollbar pointer-events-auto">
+          <div className="flex gap-2">
+            {["All", ...new Set(ATTRACTIONS.map(p => p.type))].map((type) => (
+              <button
+                key={type}
+                onClick={() => setSelectedFilter(type)}
+                className={`
+                  px-4 py-1.5 rounded-full text-xs font-bold shadow-md transition-all whitespace-nowrap border
+                  ${selectedFilter === type 
+                    ? "bg-emerald-600 text-white border-emerald-600 scale-105" 
+                    : "bg-white/90 text-slate-600 border-white/50 hover:bg-white"}
+                `}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 🃏 Visual Cards */}
         <div 
-          ref={cardsContainerRef}
-          className="flex gap-4 overflow-x-auto px-6 no-scrollbar snap-x snap-mandatory pointer-events-auto items-end"
+          className="pb-8 pt-4 bg-gradient-to-t from-black/50 via-black/10 to-transparent pointer-events-none"
         >
+          <div 
+            ref={cardsContainerRef}
+            className="flex gap-4 overflow-x-auto px-6 no-scrollbar snap-x snap-mandatory pointer-events-auto items-end"
+          >
           {/* Home Card */}
-          <div className="snap-center min-w-[280px] max-w-[280px] bg-white/95 backdrop-blur-md rounded-3xl shadow-xl border border-white/60 flex flex-col overflow-hidden h-[300px]">
-            <div className="h-36 bg-emerald-600 flex items-center justify-center relative overflow-hidden">
+          <div className="snap-center min-w-[280px] max-w-[280px] bg-white/95 backdrop-blur-md rounded-3xl shadow-xl border border-white/60 flex flex-col overflow-hidden h-[260px]">
+            <div className="h-20 bg-emerald-600 flex items-center justify-center relative overflow-hidden">
                <div className="absolute inset-0 bg-[url('/pattern.png')] opacity-10"></div>
               <span className="text-white font-bold text-2xl tracking-widest opacity-90">HOME</span>
             </div>
-            <div className="p-5 flex-1 flex flex-col justify-between">
+            <div className="p-4 flex-1 flex flex-col justify-between">
               <div>
-                <h3 className="font-bold text-xl text-gray-800">Relax at Kasage</h3>
-                <p className="text-slate-500 text-sm mt-2 leading-relaxed">Your guide to nearby wonders. Tap a card to explore.</p>
+                <h3 className="font-bold text-lg text-gray-800">Relax at Kasage</h3>
+                <p className="text-slate-500 text-xs mt-1 leading-relaxed">Your guide to nearby wonders. Tap a card to explore.</p>
               </div>
-              <button 
-                onClick={() => navigate('/booking')} 
-                className="w-full py-3 rounded-xl bg-emerald-50 text-emerald-700 font-bold text-sm hover:bg-emerald-100 transition-colors"
-              >
-                View Booking
-              </button>
+              <div className="flex flex-col gap-1.5">
+                <button 
+                  onClick={handleBookOnWhatsApp} 
+                  className="w-full py-2 rounded-xl bg-emerald-50 text-emerald-700 font-bold text-xs hover:bg-emerald-100 transition-colors"
+                >
+                  Book: 8660627034
+                </button>
+                  <button 
+                    onClick={() => openNavigation(KASAGE_LOCATION.lat, KASAGE_LOCATION.lng)}
+                    className="w-full py-2 rounded-xl bg-white border border-emerald-200 text-emerald-700 font-bold text-xs hover:bg-emerald-50 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Navigation size={14} /> Navigate to Kasage
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
 
-          {/* Attraction Cards */}
-          {ATTRACTIONS.map((item) => (
-            <motion.div
-              key={item.id}
-              id={`card-${item.id}`}
-              onClick={() => handleSelectLocation(item)}
-              layout
+            {/* Attraction Cards */}
+            {filteredAttractions.map((item) => (
+              <motion.div
+                key={item.id}
+                id={`card-${item.id}`}
+                onClick={() => handleSelectLocation(item)}
+                layout
               className={`
-                snap-center min-w-[280px] max-w-[280px] bg-white/95 backdrop-blur-md rounded-3xl shadow-xl cursor-pointer transition-all duration-300 border border-white/60 overflow-hidden h-[300px] flex flex-col
+                snap-center min-w-[280px] max-w-[280px] bg-white/95 backdrop-blur-md rounded-3xl shadow-xl cursor-pointer transition-all duration-300 border border-white/60 overflow-hidden h-[260px] flex flex-col
                 ${selectedId === item.id ? "ring-2 ring-emerald-500 scale-100" : "scale-95 opacity-90"}
               `}
             >
-              <div className="h-40 w-full relative shrink-0">
+              <div className="h-32 w-full relative shrink-0">
                 <img 
                   src={item.image} 
                   alt={item.name} 
@@ -413,17 +545,17 @@ export default function MapPage() {
                 </div>
               </div>
 
-              <div className="p-4 flex flex-col flex-1">
+              <div className="p-3 flex flex-col flex-1">
                 <div className="flex justify-between items-start mb-1">
-                  <h3 className="font-bold text-slate-800 text-lg leading-tight">{item.name}</h3>
+                  <h3 className="font-bold text-slate-800 text-base leading-tight">{item.name}</h3>
                 </div>
                 
-                <div className="flex items-center gap-2 mb-3">
-                   <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full text-white shadow-sm`} style={{ backgroundColor: item.color }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full text-white shadow-sm`} style={{ backgroundColor: item.color }}>
                     {item.type}
                   </span>
-                  <span className="text-slate-500 text-xs flex items-center gap-1 font-medium">
-                    <Car size={12}/> {item.distance}
+                  <span className="text-slate-500 text-[10px] flex items-center gap-1 font-medium">
+                    <Car size={10}/> {item.distance}
                   </span>
                 </div>
 
@@ -431,20 +563,21 @@ export default function MapPage() {
                   {selectedId === item.id ? (
                     <button
                       onClick={(e) => { e.stopPropagation(); openNavigation(item.lat, item.lng); }}
-                      className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg hover:bg-emerald-700 transition-colors"
+                      className="w-full bg-emerald-600 text-white py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg hover:bg-emerald-700 transition-colors"
                     >
-                      <Navigation size={16} /> Start GPS
+                      <Navigation size={14} /> Start GPS
                     </button>
                   ) : (
-                    <div className="text-center text-emerald-600/80 text-xs font-semibold py-2">
+                    <div className="text-center text-emerald-600/80 text-[10px] font-semibold py-1">
                       Tap card to see route
                     </div>
                   )}
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
-          <div className="min-w-[20px]" />
+              </motion.div>
+            ))}
+            <div className="min-w-[20px]" />
+          </div>
         </div>
       </div>
     </div>
