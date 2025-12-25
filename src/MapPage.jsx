@@ -191,7 +191,7 @@ export default function MapPage() {
   }, [selectedFilter]);
 
   const handleBookOnWhatsApp = () => {
-    window.open("https://wa.me/918660627034", "_blank");
+    window.open("https://wa.me/917996090696", "_blank");
   };
 
   /* -------- INITIALIZE MAP -------- */
@@ -421,12 +421,7 @@ export default function MapPage() {
 
       {/* 🔝 Floating Top Bar */}
       <div className="absolute top-0 inset-x-0 z-20 p-4 bg-gradient-to-b from-black/60 to-transparent pt-6 pb-12 pointer-events-none">
-         <div className="flex justify-between items-start pointer-events-auto">
-            <div 
-              className="bg-white/90 backdrop-blur text-emerald-800 px-4 py-2 rounded-full font-bold shadow-md text-xs flex items-center gap-2"
-            >
-              kasage-homestay.vercel.app
-            </div>
+         <div className="flex justify-end items-start pointer-events-auto">
             <div className="flex flex-col items-end">
               <span className="text-white font-bold text-lg drop-shadow-md">Explore Nearby</span>
               <span className="text-white/80 text-xs drop-shadow-md">Guest Guide</span>
@@ -503,14 +498,15 @@ export default function MapPage() {
             <div className="p-4 flex-1 flex flex-col justify-between">
               <div>
                 <h3 className="font-bold text-lg text-gray-800">Relax at Kasage</h3>
-                <p className="text-slate-500 text-xs mt-1 leading-relaxed">Your guide to nearby wonders. Tap a card to explore.</p>
+                <p className="text-emerald-600 font-bold text-[10px] mb-1">kasage-homestay.vercel.app/</p>
+                <p className="text-slate-500 text-xs leading-relaxed">Your guide to nearby wonders. Tap a card to explore.</p>
               </div>
               <div className="flex flex-col gap-1.5">
                 <button 
                   onClick={handleBookOnWhatsApp} 
                   className="w-full py-2 rounded-xl bg-emerald-50 text-emerald-700 font-bold text-xs hover:bg-emerald-100 transition-colors"
                 >
-                  Book: 8660627034
+                  Book on airbnb: 7996090696
                 </button>
                   <button 
                     onClick={() => openNavigation(KASAGE_LOCATION.lat, KASAGE_LOCATION.lng)}
